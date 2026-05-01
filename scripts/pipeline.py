@@ -46,7 +46,8 @@ log = logging.getLogger(__name__)
 DROPBOX_APP_KEY       = os.environ["DROPBOX_APP_KEY"]
 DROPBOX_APP_SECRET    = os.environ["DROPBOX_APP_SECRET"]
 DROPBOX_REFRESH_TOKEN = os.environ["DROPBOX_REFRESH_TOKEN"]
-DROPBOX_FOLDER        = os.environ.get("DROPBOX_FOLDER", "/")
+DROPBOX_FOLDER        = os.environ.get("DROPBOX_FOLDER", "")
+DROPBOX_FOLDER        = "" if DROPBOX_FOLDER in ("", "/") else DROPBOX_FOLDER
 
 ANTHROPIC_API_KEY     = os.environ["ANTHROPIC_API_KEY"]
 
