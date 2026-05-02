@@ -166,7 +166,8 @@ def gh_get_file(remote_path: str):
     )
     if r.status_code == 404:
         return None, None
-    r.raise_for_status()
+    if not r.ok:
+        raise Exception(f"GitHub API error {r.status_code}: {r.text}")
     d = r.json()
     return base64.b64decode(d["content"]).decode("utf-8"), d["sha"]
 
