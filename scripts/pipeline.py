@@ -139,7 +139,7 @@ Return ONLY valid JSON (no markdown):
         "https://api.anthropic.com/v1/messages",
         headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
                  "content-type": "application/json"},
-        json={"model": "claude-sonnet-4-20250514", "max_tokens": 300,
+        json={"model": "claude-sonnet-4-5", "max_tokens": 300,
               "messages": [{"role": "user", "content": prompt}]},
         timeout=30,
     )
