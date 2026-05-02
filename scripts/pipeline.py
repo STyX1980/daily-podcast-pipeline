@@ -100,7 +100,7 @@ def list_new_mp3s(dbx, processed: set) -> list:
     for entry in entries:
         if (
             isinstance(entry, dropbox.files.FileMetadata)
-            and entry.name.lower().endswith(".mp3")
+            and entry.name.lower().endswith((".mp3", ".m4a"))
             and entry.id not in processed
         ):
             new_files.append({"id": entry.id, "name": entry.name,
