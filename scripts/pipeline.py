@@ -218,7 +218,7 @@ CONTENT_NS = "http://purl.org/rss/1.0/modules/content/"
 def make_fresh_rss():
     ET.register_namespace("itunes",  ITUNES_NS)
     ET.register_namespace("content", CONTENT_NS)
-    rss = ET.Element("rss", {"version": "2.0", "xmlns:itunes": ITUNES_NS, "xmlns:content": CONTENT_NS})
+    rss = ET.Element("rss", {"version": "2.0"})
     ch  = ET.SubElement(rss, "channel")
     ET.SubElement(ch, "title").text                         = PODCAST_TITLE
     ET.SubElement(ch, "description").text                   = PODCAST_DESCRIPTION
