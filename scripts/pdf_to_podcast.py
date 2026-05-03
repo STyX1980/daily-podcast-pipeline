@@ -1,28 +1,35 @@
 """
-PDF → Podcast Pipeline
------------------------
-1. Detects new PDFs in Dropbox /pdfs/ subfolder
-2. Downloads PDF and extracts text
-3. Claude API writes a two-host conversational podcast script
-4. Edge TTS converts script to audio (male + female voices)
-5. Merges audio segments into single mp3
-6. Uploads to Dropbox → gets public link
+PDF → Podcast Pipeline (multi-paper synthesis)
+------------------------------------------------
+1. Detects ALL new PDFs in Dropbox /pdfs/ folder
+2. Downloads and extracts text from all of them
+3. Claude writes ONE synthesized two-host podcast episode across all papers
+4. Edge TTS converts script to audio (Jenny + Guy voices)
+5. Merges audio into single mp3, uploads to Dropbox audio folder
+6. Moves processed PDFs to /pdfs/old/
 7. Updates RSS feed on GitHub Pages → Spotify picks it up
 
-Voices used:
-  Host 1 (female): en-US-JennyNeural  — warm, engaging
-  Host 2 (male):   en-US-GuyNeural    — clear, conversational
-
-No extra API keys needed beyond what's already in your secrets.
-Edge TTS is free and requires no authentication.
+Required GitHub Secrets:
+    DROPBOX_APP_KEY
+    DROPBOX_APP_SECRET
+    DROPBOX_REFRESH_TOKEN
+    DROPBOX_AUDIO_FOLDER  e.g. /pEEL/Daily podcast/uploads/audio
+    DROPBOX_PDF_FOLDER    e.g. /pEEL/Daily podcast/uploads/pdfs
+    ANTHROPIC_API_KEY
+    PODCAST_TITLE
+    PODCAST_DESCRIPTION
+    PODCAST_AUTHOR
+    PODCAST_EMAIL
+    GH_REPO
+    GH_PAGES_TOKEN
 """
 
 import os, base64, json, hashlib, logging, asyncio, tempfile, subprocess
 from pathlib import Path
-import requests
-import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from email.utils import format_datetime
+import requests
+import xml.etree.ElementTree as ET
 import edge_tts
 import dropbox
 from dropbox.exceptions import ApiError
@@ -31,14 +38,16 @@ from dropbox.sharing import CreateSharedLinkWithSettingsError, RequestedVisibili
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-# ── Config (same secrets as pipeline.py) ─────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 
 DROPBOX_APP_KEY       = os.environ["DROPBOX_APP_KEY"]
 DROPBOX_APP_SECRET    = os.environ["DROPBOX_APP_SECRET"]
 DROPBOX_REFRESH_TOKEN = os.environ["DROPBOX_REFRESH_TOKEN"]
+DROPBOX_AUDIO_FOLDER  = os.environ["DROPBOX_AUDIO_FOLDER"]
+DROPBOX_PDF_FOLDER    = os.environ["DROPBOX_PDF_FOLDER"]
+DROPBOX_OLD_FOLDER    = DROPBOX_PDF_FOLDER.rstrip("/") + "/old"
 
 ANTHROPIC_API_KEY     = os.environ["ANTHROPIC_API_KEY"]
-
 PODCAST_TITLE         = os.environ["PODCAST_TITLE"]
 PODCAST_DESCRIPTION   = os.environ["PODCAST_DESCRIPTION"]
 PODCAST_AUTHOR        = os.environ["PODCAST_AUTHOR"]
@@ -52,13 +61,8 @@ _owner, _reponame     = GH_REPO.split("/", 1)
 GH_PAGES_BASE         = f"https://{_owner}.github.io/{_reponame}"
 RSS_FEED_URL          = f"{GH_PAGES_BASE}/feed.xml"
 
-# Dropbox folders (from environment)
-PDF_FOLDER            = os.environ["DROPBOX_PDF_FOLDER"]
-AUDIO_FOLDER          = os.environ["DROPBOX_AUDIO_FOLDER"]
-
 PDF_STATE_FILE        = Path("processed_pdfs.json")
 
-# TTS voices
 VOICE_FEMALE          = "en-US-JennyNeural"
 VOICE_MALE            = "en-US-GuyNeural"
 
@@ -84,7 +88,7 @@ def get_dropbox_client():
 def list_new_pdfs(dbx, processed: set) -> list:
     new_files = []
     try:
-        result  = dbx.files_list_folder(PDF_FOLDER)
+        result  = dbx.files_list_folder(DROPBOX_PDF_FOLDER)
         entries = result.entries
         while result.has_more:
             result   = dbx.files_list_folder_continue(result.cursor)
@@ -107,11 +111,20 @@ def list_new_pdfs(dbx, processed: set) -> list:
     return new_files
 
 def download_file(dbx, path: str) -> bytes:
-    log.info(f"Downloading {path} ...")
+    log.info(f"  Downloading {path} ...")
     _, response = dbx.files_download(path)
     data = response.content
-    log.info(f"  {len(data)//1024} KB")
+    log.info(f"    {len(data)//1024} KB")
     return data
+
+def move_to_old(dbx, file_path: str, filename: str):
+    """Move a processed PDF to the /old/ subfolder."""
+    old_path = f"{DROPBOX_OLD_FOLDER}/{filename}"
+    try:
+        dbx.files_move_v2(file_path, old_path, autorename=True)
+        log.info(f"  Moved to old: {filename}")
+    except Exception as e:
+        log.warning(f"  Could not move {filename} to old: {e}")
 
 def upload_to_dropbox(dbx, data: bytes, dropbox_path: str):
     dbx.files_upload(data, dropbox_path, mode=dropbox.files.WriteMode.overwrite)
@@ -136,20 +149,17 @@ def get_or_create_public_link(dbx, dropbox_path: str) -> str:
 
 # ── PDF text extraction ───────────────────────────────────────────────────────
 
-def extract_pdf_text(pdf_bytes: bytes) -> str:
-    """Extract text from PDF using pdfplumber."""
+def extract_pdf_text(pdf_bytes: bytes, max_chars: int = 8000) -> str:
     import pdfplumber, io
     text_parts = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages[:30]:  # cap at 30 pages
+        for page in pdf.pages[:20]:
             text = page.extract_text()
             if text:
                 text_parts.append(text)
-    full_text = "\n\n".join(text_parts)
-    # Cap at ~12000 chars to fit Claude's context comfortably
-    return full_text[:12000]
+    return "\n\n".join(text_parts)[:max_chars]
 
-# ── Claude — podcast script generation ───────────────────────────────────────
+# ── Claude — multi-paper podcast script ───────────────────────────────────────
 
 SCRIPT_SYSTEM = """You are a podcast script writer for "Daily Science Intake" — 
 an academic research podcast aimed at researchers and students in water chemistry, 
@@ -160,11 +170,12 @@ Write engaging, conversational two-host podcast scripts. The hosts are:
 - GUY: male host, analytical and enthusiastic, explains mechanisms clearly, uses good analogies
 
 Style guidelines:
-- Conversational and natural, like two smart friends discussing a paper over coffee
+- Conversational and natural, like two smart friends discussing papers over coffee
+- Synthesize ACROSS papers — find connections, contrasts, and common themes
 - Mix technical depth with accessibility — explain jargon when it comes up
 - Include moments of genuine surprise or excitement about the findings
-- 8-12 minutes when read aloud (roughly 1200-1800 words of dialogue)
-- Start with a hook, end with key takeaways
+- 10-15 minutes when read aloud (roughly 1500-2200 words of dialogue)
+- Start with a hook that connects all the papers, end with unified key takeaways
 - NO stage directions, NO [laughter], NO (pause) — just clean dialogue
 
 Output format — strictly alternate lines, each starting with the speaker name:
@@ -173,11 +184,24 @@ GUY: ...
 JENNY: ...
 (etc.)"""
 
-def generate_podcast_script(pdf_text: str, filename: str) -> tuple[str, str, str]:
+def generate_podcast_script(papers: list[dict]) -> tuple[str, str, str]:
     """
+    papers: list of {"filename": str, "text": str}
     Returns (script, title, description).
     """
-    log.info("Generating podcast script with Claude...")
+    log.info(f"Generating synthesized podcast script for {len(papers)} paper(s)...")
+
+    papers_block = ""
+    for i, p in enumerate(papers, 1):
+        papers_block += f"\n\n--- PAPER {i}: {p['filename']} ---\n{p['text']}"
+
+    prompt = f"""Here are {len(papers)} research paper(s) to synthesize into one podcast episode.
+Find the common themes, interesting contrasts, and connections between them.
+{papers_block}
+
+Write the full synthesized podcast script covering all papers, then on a new line write:
+TITLE: <one episode title that captures the common theme across all papers>
+DESCRIPTION: <2-3 sentence show note mentioning all papers and their common thread>"""
 
     r = requests.post(
         "https://api.anthropic.com/v1/messages",
@@ -188,29 +212,17 @@ def generate_podcast_script(pdf_text: str, filename: str) -> tuple[str, str, str
         },
         json={
             "model": "claude-sonnet-4-5",
-            "max_tokens": 4000,
+            "max_tokens": 5000,
             "system": SCRIPT_SYSTEM,
-            "messages": [{
-                "role": "user",
-                "content": f"""Here is a research paper to turn into a podcast episode.
-Filename: {filename}
-
-Paper content:
-{pdf_text}
-
-Write the full podcast script, then on a new line write:
-TITLE: <episode title>
-DESCRIPTION: <2-3 sentence show note>"""
-            }],
+            "messages": [{"role": "user", "content": prompt}],
         },
-        timeout=120,
+        timeout=180,
     )
     r.raise_for_status()
     full_response = r.json()["content"][0]["text"].strip()
 
-    # Parse out title and description from the end
-    lines      = full_response.split("\n")
-    title      = filename.replace(".pdf", "").replace("_", " ").title()
+    lines       = full_response.split("\n")
+    title       = f"Research Digest — {datetime.now(timezone.utc).strftime('%B %d, %Y')}"
     description = ""
     script_lines = []
 
@@ -224,19 +236,16 @@ DESCRIPTION: <2-3 sentence show note>"""
 
     script = "\n".join(script_lines).strip()
     if not description:
-        description = f"A discussion of recent research: {title}."
+        names = ", ".join(p["filename"].replace(".pdf", "") for p in papers)
+        description = f"This episode synthesizes recent research: {names}."
 
     log.info(f"  Script: {len(script.split())} words")
     log.info(f"  Title: {title}")
     return script, title, description
 
-# ── Edge TTS — script to audio ────────────────────────────────────────────────
+# ── Edge TTS ──────────────────────────────────────────────────────────────────
 
 def parse_script(script: str) -> list[tuple[str, str]]:
-    """
-    Parse script into list of (speaker, text) tuples.
-    Handles JENNY: and GUY: prefixes.
-    """
     lines = []
     for line in script.split("\n"):
         line = line.strip()
@@ -247,18 +256,16 @@ def parse_script(script: str) -> list[tuple[str, str]]:
     return lines
 
 async def text_to_speech_segment(text: str, voice: str, output_path: str):
-    """Convert a single text segment to audio using Edge TTS."""
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(output_path)
 
 async def generate_audio_segments(lines: list[tuple[str, str]], tmp_dir: str) -> list[str]:
-    """Generate audio for each line, return list of file paths."""
     segment_paths = []
     for i, (speaker, text) in enumerate(lines):
         if not text.strip():
             continue
-        voice     = VOICE_FEMALE if speaker == "JENNY" else VOICE_MALE
-        out_path  = os.path.join(tmp_dir, f"segment_{i:04d}.mp3")
+        voice    = VOICE_FEMALE if speaker == "JENNY" else VOICE_MALE
+        out_path = os.path.join(tmp_dir, f"segment_{i:04d}.mp3")
         await text_to_speech_segment(text, voice, out_path)
         segment_paths.append(out_path)
         if i % 10 == 0:
@@ -266,9 +273,7 @@ async def generate_audio_segments(lines: list[tuple[str, str]], tmp_dir: str) ->
     return segment_paths
 
 def merge_audio_segments(segment_paths: list[str], output_path: str):
-    """Merge all mp3 segments into one file using ffmpeg."""
     log.info(f"Merging {len(segment_paths)} segments...")
-    # Write a concat file for ffmpeg
     concat_file = output_path + ".txt"
     with open(concat_file, "w") as f:
         for path in segment_paths:
@@ -282,15 +287,13 @@ def merge_audio_segments(segment_paths: list[str], output_path: str):
     log.info(f"  Merged: {os.path.getsize(output_path)//1024} KB")
 
 def script_to_mp3(script: str, output_path: str):
-    """Full pipeline: script text → merged mp3 file."""
     lines = parse_script(script)
     log.info(f"  Parsed {len(lines)} dialogue lines")
-
     with tempfile.TemporaryDirectory() as tmp_dir:
         segment_paths = asyncio.run(generate_audio_segments(lines, tmp_dir))
         merge_audio_segments(segment_paths, output_path)
 
-# ── GitHub Pages (RSS only — reused from pipeline.py) ────────────────────────
+# ── GitHub Pages RSS ──────────────────────────────────────────────────────────
 
 ITUNES_NS  = "http://www.itunes.com/dtds/podcast-1.0.dtd"
 CONTENT_NS = "http://purl.org/rss/1.0/modules/content/"
@@ -300,7 +303,7 @@ def gh_headers():
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28"}
 
-def gh_get_file(remote_path: str):
+def gh_get_file(remote_path):
     r = requests.get(
         f"https://api.github.com/repos/{GH_REPO}/contents/{remote_path}",
         headers=gh_headers(), params={"ref": GH_BRANCH}
@@ -311,7 +314,7 @@ def gh_get_file(remote_path: str):
     d = r.json()
     return base64.b64decode(d["content"]).decode("utf-8"), d["sha"]
 
-def gh_put_file(remote_path: str, content_bytes: bytes, message: str, sha=None):
+def gh_put_file(remote_path, content_bytes, message, sha=None):
     payload = {"message": message, "branch": GH_BRANCH,
                "content": base64.b64encode(content_bytes).decode("utf-8")}
     if sha:
@@ -333,7 +336,6 @@ def get_or_create_rss():
             return rss, rss.find("channel"), sha
         except ET.ParseError:
             pass
-    # Fresh RSS
     ET.register_namespace("itunes",  ITUNES_NS)
     ET.register_namespace("content", CONTENT_NS)
     rss = ET.Element("rss", {"version": "2.0"})
@@ -373,66 +375,6 @@ def rss_to_bytes(rss):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def process_pdf(dbx, file_info: dict, processed: set):
-    filename = file_info["name"]
-    log.info(f"━━━ PDF: {filename}")
-
-    # 1. Download PDF
-    pdf_bytes = download_file(dbx, file_info["path"])
-
-    # 2. Extract text
-    log.info("Extracting PDF text...")
-    pdf_text = extract_pdf_text(pdf_bytes)
-    log.info(f"  Extracted {len(pdf_text)} chars")
-
-    # 3. Generate podcast script with Claude
-    script, title, description = generate_podcast_script(pdf_text, filename)
-
-    # 4. Convert script to mp3 with Edge TTS
-    mp3_filename = filename.replace(".pdf", "").replace(".PDF", "") + "_podcast.mp3"
-    mp3_filename = mp3_filename.replace(" ", "_")
-
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
-        tmp_mp3_path = tmp.name
-
-    try:
-        log.info("Converting script to audio with Edge TTS...")
-        script_to_mp3(script, tmp_mp3_path)
-
-        # 5. Upload mp3 to Dropbox audio folder
-        dropbox_audio_path = f"{AUDIO_FOLDER}/{mp3_filename}"
-        with open(tmp_mp3_path, "rb") as f:
-            mp3_bytes = f.read()
-        upload_to_dropbox(dbx, mp3_bytes, dropbox_audio_path)
-        file_size = len(mp3_bytes)
-
-    finally:
-        if os.path.exists(tmp_mp3_path):
-            os.unlink(tmp_mp3_path)
-
-    # 6. Get public Dropbox link
-    audio_url = get_or_create_public_link(dbx, dropbox_audio_path)
-    log.info(f"  Audio URL: {audio_url}")
-
-    # 7. Update RSS feed
-    log.info("Updating RSS feed...")
-    rss, channel, rss_sha = get_or_create_rss()
-    add_episode(
-        channel=channel,
-        title=title,
-        description=description,
-        audio_url=audio_url,
-        file_size=file_size,
-        pub_date=datetime.now(timezone.utc),
-        guid=hashlib.md5(file_info["id"].encode()).hexdigest(),
-    )
-    gh_put_file("feed.xml", rss_to_bytes(rss), f"feat: RSS — {title}", rss_sha)
-
-    processed.add(file_info["id"])
-    save_pdf_state(processed)
-    log.info(f"✓ Done: {filename} → {title}")
-
-
 def main():
     log.info("=== PDF → Podcast Pipeline ===")
     processed = load_pdf_state()
@@ -443,13 +385,75 @@ def main():
         log.info("No new PDFs. Nothing to do.")
         return
 
-    log.info(f"{len(new_pdfs)} new PDF(s) found.")
+    log.info(f"{len(new_pdfs)} new PDF(s) found — synthesizing into one episode.")
+
+    # 1. Download + extract all PDFs
+    papers = []
     for f in new_pdfs:
         try:
-            process_pdf(dbx, f, processed)
+            pdf_bytes = download_file(dbx, f["path"])
+            text      = extract_pdf_text(pdf_bytes)
+            log.info(f"  Extracted {len(text)} chars from {f['name']}")
+            papers.append({"filename": f["name"], "text": text, "info": f})
         except Exception as e:
-            log.error(f"Failed: {f['name']} — {e}", exc_info=True)
+            log.error(f"  Could not extract {f['name']}: {e}")
 
+    if not papers:
+        log.error("No papers could be extracted. Aborting.")
+        return
+
+    # 2. Generate one synthesized script
+    script, title, description = generate_podcast_script(papers)
+
+    # 3. Convert to audio
+    date_str     = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    mp3_filename = f"{date_str}_digest_podcast.mp3"
+
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+        tmp_mp3_path = tmp.name
+
+    try:
+        log.info("Converting script to audio with Edge TTS...")
+        script_to_mp3(script, tmp_mp3_path)
+
+        # 4. Upload mp3 to Dropbox
+        dropbox_audio_path = f"{DROPBOX_AUDIO_FOLDER}/{mp3_filename}"
+        with open(tmp_mp3_path, "rb") as f:
+            mp3_bytes = f.read()
+        upload_to_dropbox(dbx, mp3_bytes, dropbox_audio_path)
+        file_size = len(mp3_bytes)
+
+    finally:
+        if os.path.exists(tmp_mp3_path):
+            os.unlink(tmp_mp3_path)
+
+    # 5. Get public link
+    audio_url = get_or_create_public_link(dbx, dropbox_audio_path)
+    log.info(f"  Audio URL: {audio_url}")
+
+    # 6. Update RSS feed
+    log.info("Updating RSS feed...")
+    guid = hashlib.md5("|".join(p["info"]["id"] for p in papers).encode()).hexdigest()
+    rss, channel, rss_sha = get_or_create_rss()
+    add_episode(
+        channel=channel,
+        title=title,
+        description=description,
+        audio_url=audio_url,
+        file_size=file_size,
+        pub_date=datetime.now(timezone.utc),
+        guid=guid,
+    )
+    gh_put_file("feed.xml", rss_to_bytes(rss), f"feat: RSS — {title}", rss_sha)
+
+    # 7. Move PDFs to /old/ and mark as processed
+    log.info("Moving PDFs to /old/ folder...")
+    for p in papers:
+        move_to_old(dbx, p["info"]["path"], p["info"]["name"])
+        processed.add(p["info"]["id"])
+
+    save_pdf_state(processed)
+    log.info(f"✓ Done! Episode: {title}")
     log.info("=== Done ===")
 
 
