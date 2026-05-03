@@ -2,8 +2,7 @@
 <rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">
   <channel>
     <title>Daily Science Intake</title>
-    <description>We will include a daily research summary — from an AI creator — to listen to whenever, and use it as a way to increase our exposure to science!
-In a nutshell, lazy people's way of reading papers.</description>
+    <description>We will include a daily research summary — from an AI creator — to listen to whenever, and use it as a way to increase our exposure to science! In a nutshell, lazy people's way of reading papers.</description>
     <link>https://STyX1980.github.io/daily-podcast-pipeline/feed.xml</link>
     <language>en-us</language>
     <itunes:author>Paz Nativ</itunes:author>
@@ -12,45 +11,25 @@ In a nutshell, lazy people's way of reading papers.</description>
       <itunes:email>paznativ@gmail.com</itunes:email>
     </itunes:owner>
     <itunes:explicit>no</itunes:explicit>
-    <itunes:category text="Science" />
+    <itunes:category text="Science"/>
     <item>
-      <title>Hidden Water Toxins</title>
-      <description>Episode by Paz covering Hidden Water Toxins.</description>
+      <title>Hidden Water Toxins: The Science Behind Invisible Contaminants</title>
+      <description>In this episode, Paz explores the hidden toxins lurking in our water systems and the science behind detecting and removing them. A fascinating look at what we can't see but need to understand.</description>
       <pubDate>Sun, 03 May 2026 14:44:05 +0000</pubDate>
       <guid isPermaLink="false">009d419163dde0d8e228fb3f9329859f</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/mwuqc1rkivi7i0a76qto8/02052026_Paz_Hidden_Water_Toxins.m4a?rlkey=lhp7phva0nbhblvy1vbue0omp&amp;dl=0" length="46126935" type="audio/mpeg" />
-      <itunes:title>Hidden Water Toxins</itunes:title>
-      <itunes:summary>Episode by Paz covering Hidden Water Toxins.</itunes:summary>
+      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/mwuqc1rkivi7i0a76qto8/02052026_Paz_Hidden_Water_Toxins.m4a?rlkey=lhp7phva0nbhblvy1vbue0omp&amp;dl=0" length="46126935" type="audio/mpeg"/>
+      <itunes:title>Hidden Water Toxins: The Science Behind Invisible Contaminants</itunes:title>
+      <itunes:summary>In this episode, Paz explores the hidden toxins lurking in our water systems and the science behind detecting and removing them. A fascinating look at what we can't see but need to understand.</itunes:summary>
       <itunes:explicit>no</itunes:explicit>
     </item>
     <item>
-      <title>Water Is Two Liquids Science First Auto Feed</title>
-      <description>Episode by Paz covering water is two liquids science first auto feed.</description>
+      <title>Water Is Two Liquids: The Surprising Science of H₂O</title>
+      <description>In this episode, Paz dives into the remarkable discovery that water may exist as two distinct liquids at low temperatures. A mind-bending look at the most familiar yet mysterious substance on Earth.</description>
       <pubDate>Sun, 03 May 2026 14:43:59 +0000</pubDate>
-      <guid isPermaLink="false">7f8331535cad869f606acd9523a328ef</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/la4xeqbeqaxpq39jvnk0w/02052026_Paz_water-is-two-liquids-science-first-auto-feed.m4a?rlkey=jwvhlrdj0y2waw66kendbgtx7&amp;dl=0" length="40791108" type="audio/mpeg" />
-      <itunes:title>Water Is Two Liquids Science First Auto Feed</itunes:title>
-      <itunes:summary>Episode by Paz covering water is two liquids science first auto feed.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
-    <item>
-      <title>2Nd_Intake_Hidden_Water_Toxins</title>
-      <description>Episode by Paz on 2nd_intake_Hidden_Water_Toxins.</description>
-      <pubDate>Sat, 02 May 2026 17:47:00 +0000</pubDate>
-      <guid isPermaLink="false">1f0c8cd7fa13981227237f282394c349</guid>
-      <enclosure url="https://STyX1980.github.io/daily-podcast-pipeline/audio/02-05-2026_Paz_2nd_intake_Hidden_Water_Toxins.mp3" length="22932093" type="audio/mpeg" />
-      <itunes:title>2Nd_Intake_Hidden_Water_Toxins</itunes:title>
-      <itunes:summary>Episode by Paz on 2nd_intake_Hidden_Water_Toxins.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
-    <item>
-      <title>Water Is Two Liquids Science</title>
-      <description>Episode by Paz on water is two liquids science.</description>
-      <pubDate>Sat, 02 May 2026 08:11:04 +0000</pubDate>
-      <guid isPermaLink="false">7f8331535cad869f606acd9523a328ef</guid>
-      <enclosure url="https://STyX1980.github.io/daily-podcast-pipeline/audio/02052026_Paz_water-is-two-liquids-science.m4a" length="40791108" type="audio/mpeg" />
-      <itunes:title>Water Is Two Liquids Science</itunes:title>
-      <itunes:summary>Episode by Paz on water is two liquids science.</itunes:summary>
+      <guid isPermaLink="false">aabbcc1234567890aabbcc1234567890</guid>
+      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/la4xeqbeqaxpq39jvnk0w/02052026_Paz_water-is-two-liquids-science-first-auto-feed.m4a?rlkey=jwvhlrdj0y2waw66kendbgtx7&amp;dl=0" length="40791108" type="audio/mpeg"/>
+      <itunes:title>Water Is Two Liquids: The Surprising Science of H₂O</itunes:title>
+      <itunes:summary>In this episode, Paz dives into the remarkable discovery that water may exist as two distinct liquids at low temperatures. A mind-bending look at the most familiar yet mysterious substance on Earth.</itunes:summary>
       <itunes:explicit>no</itunes:explicit>
     </item>
   </channel>
