@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repository
@@ -30,32 +32,33 @@ jobs:
 
       - name: Run audio pipeline (finished audio files)
         env:
-          DROPBOX_APP_KEY:       ${{ secrets.DROPBOX_APP_KEY }}
-          DROPBOX_APP_SECRET:    ${{ secrets.DROPBOX_APP_SECRET }}
-          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
-          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
-          PODCAST_TITLE:         ${{ secrets.PODCAST_TITLE }}
-          PODCAST_DESCRIPTION:   ${{ secrets.PODCAST_DESCRIPTION }}
-          PODCAST_AUTHOR:        ${{ secrets.PODCAST_AUTHOR }}
-          PODCAST_EMAIL:         ${{ secrets.PODCAST_EMAIL }}
-          GH_REPO:               ${{ secrets.GH_REPO }}
-          GH_PAGES_TOKEN:        ${{ secrets.GH_PAGES_TOKEN }}
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+          DROPBOX_APP_KEY:        ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET:     ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN:  ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_AUDIO_FOLDER:   ${{ secrets.DROPBOX_AUDIO_FOLDER }}
+          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
+          PODCAST_TITLE:          ${{ secrets.PODCAST_TITLE }}
+          PODCAST_DESCRIPTION:    ${{ secrets.PODCAST_DESCRIPTION }}
+          PODCAST_AUTHOR:         ${{ secrets.PODCAST_AUTHOR }}
+          PODCAST_EMAIL:          ${{ secrets.PODCAST_EMAIL }}
+          GH_REPO:                ${{ secrets.GH_REPO }}
+          GH_PAGES_TOKEN:         ${{ secrets.GH_PAGES_TOKEN }}
         run: python scripts/pipeline.py
 
       - name: Run PDF → Podcast pipeline
         env:
-          DROPBOX_APP_KEY:       ${{ secrets.DROPBOX_APP_KEY }}
-          DROPBOX_APP_SECRET:    ${{ secrets.DROPBOX_APP_SECRET }}
-          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
-          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
-          PODCAST_TITLE:         ${{ secrets.PODCAST_TITLE }}
-          PODCAST_DESCRIPTION:   ${{ secrets.PODCAST_DESCRIPTION }}
-          PODCAST_AUTHOR:        ${{ secrets.PODCAST_AUTHOR }}
-          PODCAST_EMAIL:         ${{ secrets.PODCAST_EMAIL }}
-          GH_REPO:               ${{ secrets.GH_REPO }}
-          GH_PAGES_TOKEN:        ${{ secrets.GH_PAGES_TOKEN }}
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+          DROPBOX_APP_KEY:        ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET:     ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN:  ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_AUDIO_FOLDER:   ${{ secrets.DROPBOX_AUDIO_FOLDER }}
+          DROPBOX_PDF_FOLDER:     ${{ secrets.DROPBOX_PDF_FOLDER }}
+          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
+          PODCAST_TITLE:          ${{ secrets.PODCAST_TITLE }}
+          PODCAST_DESCRIPTION:    ${{ secrets.PODCAST_DESCRIPTION }}
+          PODCAST_AUTHOR:         ${{ secrets.PODCAST_AUTHOR }}
+          PODCAST_EMAIL:          ${{ secrets.PODCAST_EMAIL }}
+          GH_REPO:                ${{ secrets.GH_REPO }}
+          GH_PAGES_TOKEN:         ${{ secrets.GH_PAGES_TOKEN }}
         run: python scripts/pdf_to_podcast.py
 
       - name: Save state files
