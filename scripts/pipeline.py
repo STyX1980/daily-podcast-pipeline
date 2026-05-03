@@ -107,23 +107,25 @@ def list_new_audio(dbx, processed: set) -> list:
 
 def get_or_create_public_link(dbx, dropbox_path: str) -> str:
     """Get or create a public shared link. Returns a direct download URL."""
+    def to_direct(url):
+        return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
+
     try:
         result = dbx.sharing_list_shared_links(path=dropbox_path, direct_only=True)
         if result.links:
-            url = result.links[0].url
-            return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
+            return to_direct(result.links[0].url)
     except Exception:
         pass
+
+    settings = SharedLinkSettings(requested_visibility=RequestedVisibility.public)
     try:
-        settings  = SharedLinkSettings(requested_visibility=RequestedVisibility.public)
         link_meta = dbx.sharing_create_shared_link_with_settings(dropbox_path, settings)
-        url = link_meta.url
-        return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
-    except CreateSharedLinkWithSettingsError as e:
-        if e.error.is_shared_link_already_exists():
-            result = dbx.sharing_list_shared_links(path=dropbox_path, direct_only=True)
-            url = result.links[0].url
-            return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
+        return to_direct(link_meta.url)
+    except Exception as e:
+        # Link already exists — fetch it
+        result = dbx.sharing_list_shared_links(path=dropbox_path, direct_only=True)
+        if result.links:
+            return to_direct(result.links[0].url)
         raise
 
 # ── Claude ────────────────────────────────────────────────────────────────────
