@@ -13,6 +13,7 @@ Required GitHub Secrets:
     DROPBOX_APP_KEY
     DROPBOX_APP_SECRET
     DROPBOX_REFRESH_TOKEN
+    DROPBOX_AUDIO_FOLDER  e.g. /pEEL/Daily podcast/uploads/audio
     ANTHROPIC_API_KEY
     PODCAST_TITLE
     PODCAST_DESCRIPTION
@@ -32,7 +33,6 @@ from pathlib import Path
 import dropbox
 from dropbox.exceptions import ApiError
 from dropbox.sharing import CreateSharedLinkWithSettingsError, RequestedVisibility, SharedLinkSettings
-from dropbox.sharing import RequestedVisibility, SharedLinkSettings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -42,8 +42,7 @@ log = logging.getLogger(__name__)
 DROPBOX_APP_KEY       = os.environ["DROPBOX_APP_KEY"]
 DROPBOX_APP_SECRET    = os.environ["DROPBOX_APP_SECRET"]
 DROPBOX_REFRESH_TOKEN = os.environ["DROPBOX_REFRESH_TOKEN"]
-_raw                  = os.environ.get("DROPBOX_FOLDER", "")
-DROPBOX_FOLDER        = "" if _raw in ("", "/") else _raw
+DROPBOX_AUDIO_FOLDER  = os.environ["DROPBOX_AUDIO_FOLDER"]
 
 ANTHROPIC_API_KEY     = os.environ["ANTHROPIC_API_KEY"]
 PODCAST_TITLE         = os.environ["PODCAST_TITLE"]
@@ -84,7 +83,7 @@ def get_dropbox_client():
 def list_new_audio(dbx, processed: set) -> list:
     new_files = []
     try:
-        result  = dbx.files_list_folder(DROPBOX_FOLDER)
+        result  = dbx.files_list_folder(DROPBOX_AUDIO_FOLDER)
         entries = result.entries
         while result.has_more:
             result   = dbx.files_list_folder_continue(result.cursor)

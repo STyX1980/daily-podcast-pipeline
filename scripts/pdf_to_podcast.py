@@ -52,9 +52,9 @@ _owner, _reponame     = GH_REPO.split("/", 1)
 GH_PAGES_BASE         = f"https://{_owner}.github.io/{_reponame}"
 RSS_FEED_URL          = f"{GH_PAGES_BASE}/feed.xml"
 
-# Dropbox subfolders
-PDF_FOLDER            = "/pdfs"       # drop PDFs here
-AUDIO_FOLDER          = "/audio"      # pipeline.py watches this for finished audio
+# Dropbox folders (from environment)
+PDF_FOLDER            = os.environ["DROPBOX_PDF_FOLDER"]
+AUDIO_FOLDER          = os.environ["DROPBOX_AUDIO_FOLDER"]
 
 PDF_STATE_FILE        = Path("processed_pdfs.json")
 
