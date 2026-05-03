@@ -13,6 +13,16 @@
     <itunes:explicit>no</itunes:explicit>
     <itunes:category text="Science" />
     <item>
+      <title>Podcast</title>
+      <description>Episode by digest covering podcast.</description>
+      <pubDate>Sun, 03 May 2026 21:42:06 +0000</pubDate>
+      <guid isPermaLink="false">124f61a9282e7368aa0d8e74a0185d78</guid>
+      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/yoqu7zawqzlscxp2wt6xx/2026-05-03_digest_podcast.mp3?rlkey=zhcu5ovpitqje7dzd72f5odoc&amp;dl=0" length="6627405" type="audio/mpeg" />
+      <itunes:title>Podcast</itunes:title>
+      <itunes:summary>Episode by digest covering podcast.</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+    </item>
+    <item>
       <title>From Fish to Quantum Computers: The Surprising Versatility of Selective Ion Exchange</title>
       <description>Three papers trace the evolution of zinc-hexacyanoferrate materials from removing ammonia in seafood shipping containers to extracting high-purity rubidium from industrial waste. Together they reveal how targeted selectivity in ion exchange can unlock both niche applications and critical materials recovery from complex brines.</description>
       <pubDate>Sun, 03 May 2026 20:59:41 +0000</pubDate>
