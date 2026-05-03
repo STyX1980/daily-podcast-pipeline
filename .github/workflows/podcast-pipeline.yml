@@ -3,13 +3,11 @@ name: Podcast Pipeline
 on:
   schedule:
     - cron: "0 * * * *"   # every hour
-  workflow_dispatch:       # manual trigger from Actions tab
+  workflow_dispatch:       # manual trigger
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
       contents: write
 
@@ -26,14 +24,15 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          # ffmpeg is pre-installed on ubuntu-latest
 
-      - name: Run podcast pipeline
+      - name: Run audio pipeline (finished audio files)
         env:
           DROPBOX_APP_KEY:       ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET:    ${{ secrets.DROPBOX_APP_SECRET }}
           DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
-          DROPBOX_FOLDER:        ${{ secrets.DROPBOX_FOLDER }}
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           PODCAST_TITLE:         ${{ secrets.PODCAST_TITLE }}
           PODCAST_DESCRIPTION:   ${{ secrets.PODCAST_DESCRIPTION }}
@@ -41,12 +40,28 @@ jobs:
           PODCAST_EMAIL:         ${{ secrets.PODCAST_EMAIL }}
           GH_REPO:               ${{ secrets.GH_REPO }}
           GH_PAGES_TOKEN:        ${{ secrets.GH_PAGES_TOKEN }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         run: python scripts/pipeline.py
 
-      - name: Save processed files state
+      - name: Run PDF → Podcast pipeline
+        env:
+          DROPBOX_APP_KEY:       ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET:    ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          PODCAST_TITLE:         ${{ secrets.PODCAST_TITLE }}
+          PODCAST_DESCRIPTION:   ${{ secrets.PODCAST_DESCRIPTION }}
+          PODCAST_AUTHOR:        ${{ secrets.PODCAST_AUTHOR }}
+          PODCAST_EMAIL:         ${{ secrets.PODCAST_EMAIL }}
+          GH_REPO:               ${{ secrets.GH_REPO }}
+          GH_PAGES_TOKEN:        ${{ secrets.GH_PAGES_TOKEN }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        run: python scripts/pdf_to_podcast.py
+
+      - name: Save state files
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add processed_files.json || true
+          git add processed_files.json processed_pdfs.json || true
           git diff --staged --quiet || git commit -m "chore: update state [skip ci]"
           git push || true
