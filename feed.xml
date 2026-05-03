@@ -13,6 +13,16 @@
     <itunes:explicit>no</itunes:explicit>
     <itunes:category text="Science" />
     <item>
+      <title>Podcast</title>
+      <description>Episode by (2026) covering podcast.</description>
+      <pubDate>Sun, 03 May 2026 20:53:20 +0000</pubDate>
+      <guid isPermaLink="false">5d2f130f997d212000d22f4cf778e8e1</guid>
+      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/bcl370q0p1yoboup9m9u5/Discrepancies-between-ph-and-corrosive-indices-of-hypersaline-effluents_-2026-_podcast.mp3?rlkey=zbq0rll77yjsinnvtyj1dpbwl&amp;dl=0" length="4414989" type="audio/mpeg" />
+      <itunes:title>Podcast</itunes:title>
+      <itunes:summary>Episode by (2026) covering podcast.</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+    </item>
+    <item>
       <title>When pH Lies: The Hidden Chemistry of Hypersaline Brines</title>
       <description>pH is supposed to tell us if water is acidic or corrosive — but in super salty brines from lithium mines and oil wells, pH readings can be dangerously misleading. Researchers analyzed over 60,000 hypersaline water samples and found that more than 5% had acidic pH values yet weren't corrosive at all. We explore why standard measurements break down in extreme environments and what it means for environmental regulations and industrial processes.</description>
       <pubDate>Sun, 03 May 2026 20:51:12 +0000</pubDate>
