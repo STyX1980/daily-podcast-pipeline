@@ -31,7 +31,7 @@ from pathlib import Path
 
 import dropbox
 from dropbox.exceptions import ApiError
-from dropbox.files import CreateSharedLinkWithSettingsError
+from dropbox.sharing import CreateSharedLinkWithSettingsError, RequestedVisibility, SharedLinkSettings
 from dropbox.sharing import RequestedVisibility, SharedLinkSettings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
