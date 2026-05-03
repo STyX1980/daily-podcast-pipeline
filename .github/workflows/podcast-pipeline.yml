@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          # ffmpeg is pre-installed on ubuntu-latest
+          sudo apt-get install -y ffmpeg
 
       - name: Run audio pipeline (finished audio files)
         env:
