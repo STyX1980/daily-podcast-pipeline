@@ -270,10 +270,31 @@ def rss_to_bytes(rss):
 
 def process_file(dbx, file_info: dict, processed: set):
     filename  = file_info["name"]
-    safe_name = filename.replace(" ", "_")
+    import re, subprocess, tempfile, os
+    safe_name = re.sub(r'[^A-Za-z0-9._\-]', '_', filename.replace(" ", "_"))
     log.info(f"━━━ {filename}")
 
-    mp3_bytes = download_mp3(dbx, file_info["path"])
+    raw_bytes = download_mp3(dbx, file_info["path"])
+
+    # Convert m4a to mp3 automatically
+    if filename.lower().endswith(".m4a"):
+        log.info("Converting m4a → mp3 with ffmpeg...")
+        safe_name = safe_name.replace(".m4a", ".mp3").replace(".M4A", ".mp3")
+        with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as tmp_in:
+            tmp_in.write(raw_bytes)
+            tmp_in_path = tmp_in.name
+        tmp_out_path = tmp_in_path.replace(".m4a", ".mp3")
+        subprocess.run(
+            ["ffmpeg", "-i", tmp_in_path, "-codec:a", "libmp3lame", "-qscale:a", "4", tmp_out_path],
+            check=True, capture_output=True
+        )
+        with open(tmp_out_path, "rb") as f:
+            mp3_bytes = f.read()
+        os.unlink(tmp_in_path)
+        os.unlink(tmp_out_path)
+        log.info(f"  Converted: {len(mp3_bytes)//1024} KB")
+    else:
+        mp3_bytes = raw_bytes
 
     log.info("Generating metadata with Claude...")
     meta = generate_episode_metadata(filename)
