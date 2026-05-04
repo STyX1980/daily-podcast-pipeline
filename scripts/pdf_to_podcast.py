@@ -275,7 +275,16 @@ def parse_script(script: str) -> list[tuple[str, str]]:
     return lines
 
 async def tts_segment(text: str, voice: str, path: str):
-    await edge_tts.Communicate(text, voice).save(path)
+    for attempt in range(5):
+        try:
+            await edge_tts.Communicate(text, voice).save(path)
+            return
+        except Exception as e:
+            if attempt == 4:
+                raise
+            wait = 3 * (attempt + 1)
+            log.warning(f"    TTS attempt {attempt+1} failed, retrying in {wait}s: {e}")
+            await asyncio.sleep(wait)
 
 async def generate_segments(lines: list[tuple[str, str]], tmp_dir: str) -> list[str]:
     paths = []
