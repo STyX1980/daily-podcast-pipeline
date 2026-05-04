@@ -3,7 +3,7 @@ name: Podcast Pipeline
 on:
   schedule:
     - cron: "0 * * * *"   # every hour
-  workflow_dispatch:       # manual trigger
+  workflow_dispatch:
 
 jobs:
   run-pipeline:
@@ -30,22 +30,8 @@ jobs:
           pip install -r requirements.txt
           sudo apt-get install -y ffmpeg
 
-      - name: Run audio pipeline (finished audio files)
-        env:
-          DROPBOX_APP_KEY:        ${{ secrets.DROPBOX_APP_KEY }}
-          DROPBOX_APP_SECRET:     ${{ secrets.DROPBOX_APP_SECRET }}
-          DROPBOX_REFRESH_TOKEN:  ${{ secrets.DROPBOX_REFRESH_TOKEN }}
-          DROPBOX_AUDIO_FOLDER:   ${{ secrets.DROPBOX_AUDIO_FOLDER }}
-          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
-          PODCAST_TITLE:          ${{ secrets.PODCAST_TITLE }}
-          PODCAST_DESCRIPTION:    ${{ secrets.PODCAST_DESCRIPTION }}
-          PODCAST_AUTHOR:         ${{ secrets.PODCAST_AUTHOR }}
-          PODCAST_EMAIL:          ${{ secrets.PODCAST_EMAIL }}
-          GH_REPO:                ${{ secrets.GH_REPO }}
-          GH_PAGES_TOKEN:         ${{ secrets.GH_PAGES_TOKEN }}
-        run: python scripts/pipeline.py
-
-      - name: Run PDF → Podcast pipeline
+      # ── Step 1: PDF → audio (runs first) ──────────────────────────────────
+      - name: Run PDF → Podcast pipeline (per member)
         env:
           DROPBOX_APP_KEY:        ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET:     ${{ secrets.DROPBOX_APP_SECRET }}
@@ -61,6 +47,23 @@ jobs:
           GH_PAGES_TOKEN:         ${{ secrets.GH_PAGES_TOKEN }}
         run: python scripts/pdf_to_podcast.py
 
+      # ── Step 2: audio folder → RSS (runs after PDFs are processed) ────────
+      - name: Run audio pipeline (sync RSS with Dropbox audio folder)
+        env:
+          DROPBOX_APP_KEY:        ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET:     ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN:  ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_AUDIO_FOLDER:   ${{ secrets.DROPBOX_AUDIO_FOLDER }}
+          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
+          PODCAST_TITLE:          ${{ secrets.PODCAST_TITLE }}
+          PODCAST_DESCRIPTION:    ${{ secrets.PODCAST_DESCRIPTION }}
+          PODCAST_AUTHOR:         ${{ secrets.PODCAST_AUTHOR }}
+          PODCAST_EMAIL:          ${{ secrets.PODCAST_EMAIL }}
+          GH_REPO:                ${{ secrets.GH_REPO }}
+          GH_PAGES_TOKEN:         ${{ secrets.GH_PAGES_TOKEN }}
+        run: python scripts/pipeline.py
+
+      # ── Save state ─────────────────────────────────────────────────────────
       - name: Save state files
         run: |
           git config user.name  "github-actions[bot]"
