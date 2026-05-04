@@ -13,5 +13,15 @@ In a nutshell, lazy people's way of reading papers.</description>
     </itunes:owner>
     <itunes:explicit>no</itunes:explicit>
     <itunes:category text="Science" />
+    <item>
+      <title>Turning Hollow Spheres Into Electrochemical Microreactors for Uranium Extraction</title>
+      <description>We explore a groundbreaking uranium extraction technology that reimagines hollow carbon spheres as confined electrochemical microreactors. By combining electric-field-driven ion transport, spatial confinement, and in-situ reduction, researchers achieved an 8-fold capacity increase over conventional adsorption—pointing toward a new paradigm in resource recovery where nanoarchitecture and electrochemistry work in synergy.</description>
+      <pubDate>Mon, 04 May 2026 08:06:24 +0000</pubDate>
+      <guid isPermaLink="false">f4d49079809465b66b94ecf1db3b0c84</guid>
+      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/t9xic47agtaji4ehf1437/2026-05-04_digest_podcast.mp3?rlkey=3xh6a6ewpmr9czbcuz0fn7vqh&amp;dl=0" length="4773549" type="audio/mpeg" />
+      <itunes:title>Turning Hollow Spheres Into Electrochemical Microreactors for Uranium Extraction</itunes:title>
+      <itunes:summary>We explore a groundbreaking uranium extraction technology that reimagines hollow carbon spheres as confined electrochemical microreactors. By combining electric-field-driven ion transport, spatial confinement, and in-situ reduction, researchers achieved an 8-fold capacity increase over conventional adsorption—pointing toward a new paradigm in resource recovery where nanoarchitecture and electrochemistry work in synergy.</itunes:summary>
+      <itunes:explicit>no</itunes:explicit>
+    </item>
   </channel>
 </rss>
