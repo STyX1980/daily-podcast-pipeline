@@ -275,16 +275,7 @@ def parse_script(script: str) -> list[tuple[str, str]]:
     return lines
 
 async def tts_segment(text: str, voice: str, path: str):
-    for attempt in range(5):
-        try:
-            await edge_tts.Communicate(text, voice).save(path)
-            return
-        except Exception as e:
-            if attempt == 4:
-                raise
-            wait = 3 * (attempt + 1)
-            log.warning(f"    TTS attempt {attempt+1} failed, retrying in {wait}s: {e}")
-            await asyncio.sleep(wait)
+    await edge_tts.Communicate(text, voice).save(path)
 
 async def generate_segments(lines: list[tuple[str, str]], tmp_dir: str) -> list[str]:
     paths = []
@@ -465,7 +456,14 @@ def process_member(dbx, member_name: str, processed: set):
     )
     gh_put_file("feed.xml", rss_to_bytes(rss), f"feat: RSS — {title}", rss_sha)
 
-    # 7. Move PDFs to member's old/ folder + mark processed
+    # 7. Save metadata to shared cache so pipeline.py uses it instead of re-generating
+    cache_file = Path("episode_metadata_cache.json")
+    cache = json.loads(cache_file.read_text()) if cache_file.exists() else {}
+    cache[f"filename:{mp3_filename}"] = {"title": title, "description": description}
+    cache_file.write_text(json.dumps(cache, indent=2))
+    log.info(f"  Cached metadata for {mp3_filename}")
+
+    # 8. Move PDFs to member's old/ folder + mark processed
     log.info(f"  Moving PDFs to {member_name}/old/...")
     for p in papers:
         move_to_old(dbx, p["info"]["path"], member_name, p["info"]["name"])
