@@ -2,5 +2,9 @@
   "id:Y4P-7XrnMs0AAAAAAATBsA": {
     "title": "Podcast",
     "description": "Episode by digest covering podcast."
+  },
+  "id:Y4P-7XrnMs0AAAAAAATBwQ": {
+    "title": "Digest",
+    "description": "Episode by Paz covering digest."
   }
 }
