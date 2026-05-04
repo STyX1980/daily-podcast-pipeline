@@ -173,13 +173,25 @@ Return ONLY valid JSON (no markdown, no extra text):
         }
 
 def get_metadata(file_info: dict, cache: dict) -> dict:
-    """Return cached metadata or generate new via Claude."""
-    file_id = file_info["id"]
+    """Return cached metadata or generate new via Claude.
+    Checks by filename first (for PDF-generated episodes), then by file ID."""
+    file_id  = file_info["id"]
+    filename = file_info["name"]
+
+    # Check filename-based cache first (set by pdf_to_podcast.py)
+    fname_key = f"filename:{filename}"
+    if fname_key in cache:
+        log.info(f"  Using PDF-generated metadata for {filename}")
+        return cache[fname_key]
+
+    # Check file ID cache (previously seen audio files)
     if file_id in cache:
-        log.info(f"  Using cached metadata for {file_info['name']}")
+        log.info(f"  Using cached metadata for {filename}")
         return cache[file_id]
-    log.info(f"  Generating metadata for {file_info['name']}...")
-    meta = generate_episode_metadata(file_info["name"])
+
+    # Generate via Claude
+    log.info(f"  Generating metadata for {filename}...")
+    meta = generate_episode_metadata(filename)
     cache[file_id] = meta
     log.info(f"  Title: {meta['title']}")
     return meta
