@@ -2,7 +2,8 @@
 <rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">
   <channel>
     <title>Daily Science Intake</title>
-    <description>We will include a daily research summary — from an AI creator — to listen to whenever, and use it as a way to increase our exposure to science! In a nutshell, lazy people's way of reading papers.</description>
+    <description>We will include a daily research summary — from an AI creator — to listen to whenever, and use it as a way to increase our exposure to science!
+In a nutshell, lazy people's way of reading papers.</description>
     <link>https://STyX1980.github.io/daily-podcast-pipeline/feed.xml</link>
     <language>en-us</language>
     <itunes:author>Paz Nativ</itunes:author>
@@ -12,65 +13,5 @@
     </itunes:owner>
     <itunes:explicit>no</itunes:explicit>
     <itunes:category text="Science" />
-    <item>
-      <title>Podcast</title>
-      <description>Episode by digest covering podcast.</description>
-      <pubDate>Sun, 03 May 2026 21:42:06 +0000</pubDate>
-      <guid isPermaLink="false">124f61a9282e7368aa0d8e74a0185d78</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/yoqu7zawqzlscxp2wt6xx/2026-05-03_digest_podcast.mp3?rlkey=zhcu5ovpitqje7dzd72f5odoc&amp;dl=0" length="6627405" type="audio/mpeg" />
-      <itunes:title>Podcast</itunes:title>
-      <itunes:summary>Episode by digest covering podcast.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
-    <item>
-      <title>From Fish to Quantum Computers: The Surprising Versatility of Selective Ion Exchange</title>
-      <description>Three papers trace the evolution of zinc-hexacyanoferrate materials from removing ammonia in seafood shipping containers to extracting high-purity rubidium from industrial waste. Together they reveal how targeted selectivity in ion exchange can unlock both niche applications and critical materials recovery from complex brines.</description>
-      <pubDate>Sun, 03 May 2026 20:59:41 +0000</pubDate>
-      <guid isPermaLink="false">5224398f092c4617ab5c30ca0322a7fb</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/yoqu7zawqzlscxp2wt6xx/2026-05-03_digest_podcast.mp3?rlkey=zhcu5ovpitqje7dzd72f5odoc&amp;dl=0" length="6627405" type="audio/mpeg" />
-      <itunes:title>From Fish to Quantum Computers: The Surprising Versatility of Selective Ion Exchange</itunes:title>
-      <itunes:summary>Three papers trace the evolution of zinc-hexacyanoferrate materials from removing ammonia in seafood shipping containers to extracting high-purity rubidium from industrial waste. Together they reveal how targeted selectivity in ion exchange can unlock both niche applications and critical materials recovery from complex brines.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
-    <item>
-      <title>Podcast</title>
-      <description>Episode by (2026) covering podcast.</description>
-      <pubDate>Sun, 03 May 2026 20:53:20 +0000</pubDate>
-      <guid isPermaLink="false">5d2f130f997d212000d22f4cf778e8e1</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/bcl370q0p1yoboup9m9u5/Discrepancies-between-ph-and-corrosive-indices-of-hypersaline-effluents_-2026-_podcast.mp3?rlkey=zbq0rll77yjsinnvtyj1dpbwl&amp;dl=0" length="4414989" type="audio/mpeg" />
-      <itunes:title>Podcast</itunes:title>
-      <itunes:summary>Episode by (2026) covering podcast.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
-    <item>
-      <title>When pH Lies: The Hidden Chemistry of Hypersaline Brines</title>
-      <description>pH is supposed to tell us if water is acidic or corrosive — but in super salty brines from lithium mines and oil wells, pH readings can be dangerously misleading. Researchers analyzed over 60,000 hypersaline water samples and found that more than 5% had acidic pH values yet weren't corrosive at all. We explore why standard measurements break down in extreme environments and what it means for environmental regulations and industrial processes.</description>
-      <pubDate>Sun, 03 May 2026 20:51:12 +0000</pubDate>
-      <guid isPermaLink="false">a0d08f058500661136f88e2d3f306804</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/bcl370q0p1yoboup9m9u5/Discrepancies-between-ph-and-corrosive-indices-of-hypersaline-effluents_-2026-_podcast.mp3?rlkey=zbq0rll77yjsinnvtyj1dpbwl&amp;dl=0" length="4414989" type="audio/mpeg" />
-      <itunes:title>When pH Lies: The Hidden Chemistry of Hypersaline Brines</itunes:title>
-      <itunes:summary>pH is supposed to tell us if water is acidic or corrosive — but in super salty brines from lithium mines and oil wells, pH readings can be dangerously misleading. Researchers analyzed over 60,000 hypersaline water samples and found that more than 5% had acidic pH values yet weren't corrosive at all. We explore why standard measurements break down in extreme environments and what it means for environmental regulations and industrial processes.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
-    <item>
-      <title>Hidden Water Toxins: The Science Behind Invisible Contaminants</title>
-      <description>In this episode, Paz explores the hidden toxins lurking in our water systems and the science behind detecting and removing them. A fascinating look at what we can't see but need to understand.</description>
-      <pubDate>Sun, 03 May 2026 14:44:05 +0000</pubDate>
-      <guid isPermaLink="false">009d419163dde0d8e228fb3f9329859f</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/mwuqc1rkivi7i0a76qto8/02052026_Paz_Hidden_Water_Toxins.m4a?rlkey=lhp7phva0nbhblvy1vbue0omp&amp;dl=0" length="46126935" type="audio/mpeg" />
-      <itunes:title>Hidden Water Toxins: The Science Behind Invisible Contaminants</itunes:title>
-      <itunes:summary>In this episode, Paz explores the hidden toxins lurking in our water systems and the science behind detecting and removing them. A fascinating look at what we can't see but need to understand.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
-    <item>
-      <title>Water Is Two Liquids: The Surprising Science of H₂O</title>
-      <description>In this episode, Paz dives into the remarkable discovery that water may exist as two distinct liquids at low temperatures. A mind-bending look at the most familiar yet mysterious substance on Earth.</description>
-      <pubDate>Sun, 03 May 2026 14:43:59 +0000</pubDate>
-      <guid isPermaLink="false">aabbcc1234567890aabbcc1234567890</guid>
-      <enclosure url="https://dl.dropboxusercontent.com/scl/fi/la4xeqbeqaxpq39jvnk0w/02052026_Paz_water-is-two-liquids-science-first-auto-feed.m4a?rlkey=jwvhlrdj0y2waw66kendbgtx7&amp;dl=0" length="40791108" type="audio/mpeg" />
-      <itunes:title>Water Is Two Liquids: The Surprising Science of H₂O</itunes:title>
-      <itunes:summary>In this episode, Paz dives into the remarkable discovery that water may exist as two distinct liquids at low temperatures. A mind-bending look at the most familiar yet mysterious substance on Earth.</itunes:summary>
-      <itunes:explicit>no</itunes:explicit>
-    </item>
   </channel>
 </rss>
