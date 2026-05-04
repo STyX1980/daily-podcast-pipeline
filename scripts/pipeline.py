@@ -1,9 +1,10 @@
 """
 Dropbox → GitHub Pages RSS → Spotify Pipeline v2
 --------------------------------------------------
-- Audio files stay in Dropbox (no size limit, served via public links)
-- Only the RSS feed XML is hosted on GitHub Pages (tiny)
-- Claude generates episode title + description
+- Every run scans the Dropbox audio folder and rebuilds RSS from scratch
+- Files removed from Dropbox are automatically removed from the feed
+- New files get Claude-generated metadata (cached to avoid re-calling API)
+- Audio files served directly from Dropbox (no size limit)
 
 Filename convention:
     YYYY-MM-DD_AuthorName_Short-Topic-Description.m4a/.mp3
@@ -58,18 +59,22 @@ _owner, _reponame     = GH_REPO.split("/", 1)
 GH_PAGES_BASE         = f"https://{_owner}.github.io/{_reponame}"
 RSS_FEED_URL          = f"{GH_PAGES_BASE}/feed.xml"
 
-STATE_FILE            = Path("processed_files.json")
 AUDIO_EXTENSIONS      = (".mp3", ".m4a", ".wav", ".ogg")
 
-# ── State ─────────────────────────────────────────────────────────────────────
+# Cache file — stores metadata for files we've already called Claude for
+# so we don't re-generate titles on every run
+METADATA_CACHE_FILE   = Path("episode_metadata_cache.json")
 
-def load_state() -> set:
-    if STATE_FILE.exists():
-        return set(json.loads(STATE_FILE.read_text()))
-    return set()
+# ── Metadata cache ────────────────────────────────────────────────────────────
 
-def save_state(processed: set):
-    STATE_FILE.write_text(json.dumps(list(processed), indent=2))
+def load_cache() -> dict:
+    """Load cached episode metadata keyed by Dropbox file ID."""
+    if METADATA_CACHE_FILE.exists():
+        return json.loads(METADATA_CACHE_FILE.read_text())
+    return {}
+
+def save_cache(cache: dict):
+    METADATA_CACHE_FILE.write_text(json.dumps(cache, indent=2))
 
 # ── Dropbox ───────────────────────────────────────────────────────────────────
 
@@ -80,8 +85,9 @@ def get_dropbox_client():
         oauth2_refresh_token=DROPBOX_REFRESH_TOKEN,
     )
 
-def list_new_audio(dbx, processed: set) -> list:
-    new_files = []
+def list_all_audio(dbx) -> list:
+    """List ALL audio files currently in the folder (not just new ones)."""
+    files = []
     try:
         result  = dbx.files_list_folder(DROPBOX_AUDIO_FOLDER)
         entries = result.entries
@@ -95,36 +101,35 @@ def list_new_audio(dbx, processed: set) -> list:
         if (
             isinstance(entry, dropbox.files.FileMetadata)
             and entry.name.lower().endswith(AUDIO_EXTENSIONS)
-            and entry.id not in processed
         ):
-            new_files.append({
-                "id":   entry.id,
-                "name": entry.name,
-                "path": entry.path_lower,
-                "size": entry.size,
+            files.append({
+                "id":         entry.id,
+                "name":       entry.name,
+                "path":       entry.path_lower,
+                "size":       entry.size,
+                "modified":   entry.server_modified,
             })
-    return new_files
+    # Sort by modification date, oldest first (so newest episodes end up at top of feed)
+    files.sort(key=lambda f: f["modified"])
+    return files
 
 def get_or_create_public_link(dbx, dropbox_path: str) -> str:
     """Get or create a public shared link. Returns a direct download URL."""
+    def to_direct(url):
+        return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
     try:
         result = dbx.sharing_list_shared_links(path=dropbox_path, direct_only=True)
         if result.links:
-            url = result.links[0].url
-            return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
+            return to_direct(result.links[0].url)
     except Exception:
         pass
     try:
         settings  = SharedLinkSettings(requested_visibility=RequestedVisibility.public)
         link_meta = dbx.sharing_create_shared_link_with_settings(dropbox_path, settings)
-        url = link_meta.url
-        return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
-    except CreateSharedLinkWithSettingsError as e:
-        if e.error.is_shared_link_already_exists():
-            result = dbx.sharing_list_shared_links(path=dropbox_path, direct_only=True)
-            url = result.links[0].url
-            return url.replace("?dl=0", "?dl=1").replace("www.dropbox.com", "dl.dropboxusercontent.com")
-        raise
+        return to_direct(link_meta.url)
+    except Exception:
+        result = dbx.sharing_list_shared_links(path=dropbox_path, direct_only=True)
+        return to_direct(result.links[0].url)
 
 # ── Claude ────────────────────────────────────────────────────────────────────
 
@@ -167,7 +172,19 @@ Return ONLY valid JSON (no markdown, no extra text):
             "description": f"Episode by {parsed['author']} covering {parsed['topic_raw']}.",
         }
 
-# ── GitHub Pages (RSS only) ───────────────────────────────────────────────────
+def get_metadata(file_info: dict, cache: dict) -> dict:
+    """Return cached metadata or generate new via Claude."""
+    file_id = file_info["id"]
+    if file_id in cache:
+        log.info(f"  Using cached metadata for {file_info['name']}")
+        return cache[file_id]
+    log.info(f"  Generating metadata for {file_info['name']}...")
+    meta = generate_episode_metadata(file_info["name"])
+    cache[file_id] = meta
+    log.info(f"  Title: {meta['title']}")
+    return meta
+
+# ── GitHub Pages ──────────────────────────────────────────────────────────────
 
 def gh_headers():
     return {"Authorization": f"Bearer {GH_PAGES_TOKEN}",
@@ -203,7 +220,6 @@ def ensure_gh_pages_branch():
         headers=gh_headers()
     )
     if r.status_code == 200:
-        log.info("gh-pages branch exists ✓")
         return
     log.info("Creating gh-pages branch...")
     repo_r = requests.get(f"https://api.github.com/repos/{GH_REPO}", headers=gh_headers())
@@ -225,14 +241,14 @@ def ensure_gh_pages_branch():
         b"<html><body><h1>Podcast Feed</h1><p>Subscribe in your podcast app.</p></body></html>",
         "chore: init gh-pages"
     )
-    log.info("gh-pages branch created ✓")
 
-# ── RSS ───────────────────────────────────────────────────────────────────────
+# ── RSS (built from scratch each run) ────────────────────────────────────────
 
 ITUNES_NS  = "http://www.itunes.com/dtds/podcast-1.0.dtd"
 CONTENT_NS = "http://purl.org/rss/1.0/modules/content/"
 
-def make_fresh_rss():
+def build_rss_from_scratch(files: list, dbx, cache: dict) -> ET.Element:
+    """Build a complete RSS feed from the current Dropbox file list."""
     ET.register_namespace("itunes",  ITUNES_NS)
     ET.register_namespace("content", CONTENT_NS)
     rss = ET.Element("rss", {"version": "2.0"})
@@ -247,38 +263,31 @@ def make_fresh_rss():
     ET.SubElement(owner, f"{{{ITUNES_NS}}}email").text      = PODCAST_EMAIL
     ET.SubElement(ch, f"{{{ITUNES_NS}}}explicit").text      = "no"
     ET.SubElement(ch, f"{{{ITUNES_NS}}}category", attrib={"text": "Science"})
-    return rss
 
-def get_or_create_rss():
-    existing, sha = gh_get_file("feed.xml")
-    if existing:
+    # Add episodes newest first
+    for file_info in reversed(files):
         try:
-            ET.register_namespace("itunes",  ITUNES_NS)
-            ET.register_namespace("content", CONTENT_NS)
-            rss = ET.fromstring(existing)
-            return rss, rss.find("channel"), sha
-        except ET.ParseError:
-            pass
-    rss = make_fresh_rss()
-    return rss, rss.find("channel"), None
+            meta      = get_metadata(file_info, cache)
+            audio_url = get_or_create_public_link(dbx, file_info["path"])
+            guid      = hashlib.md5(file_info["id"].encode()).hexdigest()
+            pub_date  = file_info["modified"].replace(tzinfo=timezone.utc)
 
-def add_episode(channel, title, description, audio_url, file_size, pub_date, guid):
-    item = ET.Element("item")
-    ET.SubElement(item, "title").text       = title
-    ET.SubElement(item, "description").text = description
-    ET.SubElement(item, "pubDate").text     = format_datetime(pub_date)
-    ET.SubElement(item, "guid", attrib={"isPermaLink": "false"}).text = guid
-    ET.SubElement(item, "enclosure", attrib={
-        "url":    audio_url,
-        "length": str(file_size),
-        "type":   "audio/mpeg",
-    })
-    ET.SubElement(item, f"{{{ITUNES_NS}}}title").text    = title
-    ET.SubElement(item, f"{{{ITUNES_NS}}}summary").text  = description
-    ET.SubElement(item, f"{{{ITUNES_NS}}}explicit").text = "no"
-    children       = list(channel)
-    first_item_idx = next((i for i, c in enumerate(children) if c.tag == "item"), len(children))
-    channel.insert(first_item_idx, item)
+            item = ET.SubElement(ch, "item")
+            ET.SubElement(item, "title").text       = meta["title"]
+            ET.SubElement(item, "description").text = meta["description"]
+            ET.SubElement(item, "pubDate").text     = format_datetime(pub_date)
+            ET.SubElement(item, "guid", attrib={"isPermaLink": "false"}).text = guid
+            ET.SubElement(item, "enclosure", attrib={
+                "url": audio_url, "length": str(file_info["size"]), "type": "audio/mpeg"
+            })
+            ET.SubElement(item, f"{{{ITUNES_NS}}}title").text    = meta["title"]
+            ET.SubElement(item, f"{{{ITUNES_NS}}}summary").text  = meta["description"]
+            ET.SubElement(item, f"{{{ITUNES_NS}}}explicit").text = "no"
+
+        except Exception as e:
+            log.error(f"  Skipping {file_info['name']}: {e}")
+
+    return rss
 
 def rss_to_bytes(rss):
     ET.indent(rss, space="  ")
@@ -287,59 +296,32 @@ def rss_to_bytes(rss):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def process_file(dbx, file_info: dict, processed: set):
-    filename = file_info["name"]
-    log.info(f"━━━ {filename}")
-
-    # 1. Get public Dropbox link (no download needed!)
-    log.info("Getting Dropbox public link...")
-    audio_url = get_or_create_public_link(dbx, file_info["path"])
-    log.info(f"  URL: {audio_url}")
-
-    # 2. Generate metadata with Claude
-    log.info("Generating metadata with Claude...")
-    meta = generate_episode_metadata(filename)
-    log.info(f"  Title: {meta['title']}")
-    log.info(f"  Desc:  {meta['description']}")
-
-    # 3. Update RSS feed on GitHub Pages
-    log.info("Updating RSS feed...")
-    rss, channel, rss_sha = get_or_create_rss()
-    add_episode(
-        channel=channel,
-        title=meta["title"],
-        description=meta["description"],
-        audio_url=audio_url,
-        file_size=file_info["size"],
-        pub_date=datetime.now(timezone.utc),
-        guid=hashlib.md5(file_info["id"].encode()).hexdigest(),
-    )
-    gh_put_file("feed.xml", rss_to_bytes(rss), f"feat: RSS — {meta['title']}", rss_sha)
-
-    processed.add(file_info["id"])
-    save_state(processed)
-    log.info(f"✓ Done: {filename}")
-
-
 def main():
     log.info("=== Dropbox → Spotify Pipeline v2 ===")
-    processed = load_state()
-    dbx       = get_dropbox_client()
+    dbx   = get_dropbox_client()
+    cache = load_cache()
 
     ensure_gh_pages_branch()
 
-    new_files = list_new_audio(dbx, processed)
-    if not new_files:
-        log.info("No new files. Nothing to do.")
-        return
+    # Scan current state of Dropbox audio folder
+    all_files = list_all_audio(dbx)
+    log.info(f"Found {len(all_files)} audio file(s) in Dropbox.")
 
-    log.info(f"{len(new_files)} new file(s) found.")
-    for f in new_files:
-        try:
-            process_file(dbx, f, processed)
-        except Exception as e:
-            log.error(f"Failed: {f['name']} — {e}", exc_info=True)
+    if not all_files:
+        log.info("Folder is empty — feed will have no episodes.")
 
+    # Build RSS from scratch based on what's currently in Dropbox
+    log.info("Building RSS feed...")
+    rss = build_rss_from_scratch(all_files, dbx, cache)
+
+    # Save updated cache (new metadata generated this run)
+    save_cache(cache)
+
+    # Commit RSS to GitHub Pages
+    _, rss_sha = gh_get_file("feed.xml")
+    gh_put_file("feed.xml", rss_to_bytes(rss), "chore: sync RSS with Dropbox", rss_sha)
+
+    log.info(f"✓ Feed updated with {len(all_files)} episode(s).")
     log.info("=== Done ===")
 
 
