@@ -26,28 +26,8 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          sudo apt-get install -y ffmpeg
+        run: pip install -r requirements.txt
 
-      # ── Step 1: PDF → audio (runs first) ──────────────────────────────────
-      - name: Run PDF → Podcast pipeline (per member)
-        env:
-          DROPBOX_APP_KEY:        ${{ secrets.DROPBOX_APP_KEY }}
-          DROPBOX_APP_SECRET:     ${{ secrets.DROPBOX_APP_SECRET }}
-          DROPBOX_REFRESH_TOKEN:  ${{ secrets.DROPBOX_REFRESH_TOKEN }}
-          DROPBOX_AUDIO_FOLDER:   ${{ secrets.DROPBOX_AUDIO_FOLDER }}
-          DROPBOX_PDF_FOLDER:     ${{ secrets.DROPBOX_PDF_FOLDER }}
-          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
-          PODCAST_TITLE:          ${{ secrets.PODCAST_TITLE }}
-          PODCAST_DESCRIPTION:    ${{ secrets.PODCAST_DESCRIPTION }}
-          PODCAST_AUTHOR:         ${{ secrets.PODCAST_AUTHOR }}
-          PODCAST_EMAIL:          ${{ secrets.PODCAST_EMAIL }}
-          GH_REPO:                ${{ secrets.GH_REPO }}
-          GH_PAGES_TOKEN:         ${{ secrets.GH_PAGES_TOKEN }}
-        run: python scripts/pdf_to_podcast.py
-
-      # ── Step 2: audio folder → RSS (runs after PDFs are processed) ────────
       - name: Run audio pipeline (sync RSS with Dropbox audio folder)
         env:
           DROPBOX_APP_KEY:        ${{ secrets.DROPBOX_APP_KEY }}
@@ -63,11 +43,10 @@ jobs:
           GH_PAGES_TOKEN:         ${{ secrets.GH_PAGES_TOKEN }}
         run: python scripts/pipeline.py
 
-      # ── Save state ─────────────────────────────────────────────────────────
       - name: Save state files
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add processed_pdfs.json episode_metadata_cache.json || true
+          git add episode_metadata_cache.json || true
           git diff --staged --quiet || git commit -m "chore: update state [skip ci]"
           git push || true
