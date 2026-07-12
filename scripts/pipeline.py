@@ -232,6 +232,10 @@ def ensure_gh_pages_branch():
         headers=gh_headers()
     )
     if r.status_code == 200:
+        log.info("gh-pages branch exists ✓")
+        return
+    if r.status_code != 404:
+        log.warning(f"Unexpected status checking gh-pages: {r.status_code} — assuming it exists")
         return
     log.info("Creating gh-pages branch...")
     repo_r = requests.get(f"https://api.github.com/repos/{GH_REPO}", headers=gh_headers())
@@ -253,6 +257,7 @@ def ensure_gh_pages_branch():
         b"<html><body><h1>Podcast Feed</h1><p>Subscribe in your podcast app.</p></body></html>",
         "chore: init gh-pages"
     )
+    log.info("gh-pages branch created ✓")
 
 # ── RSS (built from scratch each run) ────────────────────────────────────────
 
